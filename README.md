@@ -1,1 +1,1 @@
-Sovingd daily SQL and Power BI cases
+Solving daily SQL and Power BI cases
