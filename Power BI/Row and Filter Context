@@ -1,0 +1,72 @@
+Row context exists when DAX is evaluating one row at a time. eg : Calculated columns, Iterators: SUMX, FILTER, AVERAGEX, Table visuals (each row = one evaluation)
+
+calculated column : Total_cost= Sale[Unit_SP]*Sale[Vol] , Total_cost will be produced for each row
+
+Interestingly Measures don't have row context by default, it works on aggregation, hence Total_cost= Sale[Unit_SP]*Sale[Vol] gives error for measure.
+Hence Iterators like SUMX, FILTER, AVERAGEX are used. eg Total_cost= SUMX(Sale, Sale[Unit_SP]*Sale[Vol])
+
+Filter Context exist in every operation by default in Power BI. It defines which rows of a table are included in a calculation or need to be filtered out.
+Eg : Visuals (slicers, filters), Relationships, CALCULATE, ALL, REMOVEFILTERS, Page / report filters.
+
+CALCULATE evaluates an expression after modifying the filter context.  
+Performs context transition -> CALCULATE converts existing row context into filter context.
+
+eg: 
+Top 80% Revenue =
+CALCULATE(
+    [Total Revenue],
+    FILTER(
+        ALL(Customers),
+        [Cumulative Revenue %] <= 0.8
+    )
+)
+
+1️⃣ Why does this work in a table -
+Table Visual Provides row context and Measure evaluated once per row
+In a table: Each row = one customer
+[Cumulative Revenue %] can be evaluated per customer
+FILTER condition makes sense
+
+2️⃣ Why does it return BLANK in a card
+
+In a card: No row context, FILTER iterates customers
+[Cumulative Revenue %] needs row context, No context transition happens automatically
+
+Result:
+❌ Filter condition cannot resolve
+❌ Measure returns BLANK
+
+3️⃣ How do you fix it properly
+Top 80% Revenue =
+//explicitly defining a customer table that calculates revenue per customer
+VAR CustomerTable =
+    ADDCOLUMNS(
+        ALL(Customers),
+        "CustomerRevenue", [Total Revenue]
+    )
+
+//cumulative contribution using iterator functions like ADDCOLUMNS and SUMX.
+VAR RankedCustomers =
+    ADDCOLUMNS(
+        CustomerTable,
+        "CumulativeRevenuePct",
+        DIVIDE(
+            SUMX(
+                FILTER(
+                    CustomerTable,
+                    [CustomerRevenue] >= EARLIER([CustomerRevenue])
+                ),
+                [CustomerRevenue]
+            ),
+            SUMX(CustomerTable, [CustomerRevenue])
+        )
+    )
+
+RETURN
+SUMX(
+    FILTER(
+        RankedCustomers,
+        [CumulativeRevenuePct] <= 0.8
+    ),
+    [CustomerRevenue]
+)
