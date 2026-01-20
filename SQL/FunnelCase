@@ -1,0 +1,94 @@
+For each funnel step, how many users reached that step in order?”
+
+A funnel is: Tracking users through an ordered sequence of states over time
+Key properties:
+Order matters
+Time matters
+Skipping disqualifies future steps
+
+eg 
+Events Table
+user	event	time
+1	app_open	10:00
+1	product_view	10:02
+1	add_to_cart	10:05
+1	checkout	10:07
+2	app_open	11:00
+2	product_view	11:05
+3	app_open	12:00
+3	checkout	12:30
+
+Funnel Steps : app_open -> product_view -> add_to_cart -> checkout
+
+Evaluate Users One-by-One
+User 1
+✔ app_open
+✔ product_view
+✔ add_to_cart
+✔ checkout
+Counts for all steps
+
+User 2
+✔ app_open
+✔ product_view
+❌ add_to_cart
+❌ checkout
+Counts for steps 1 and 2 only
+
+User 3
+✔ app_open
+❌ product_view
+❌ add_to_cart
+❌ checkout
+Even though checkout exists, it is invalid.
+Counts for step 1 only
+
+Final Expected Answer (Important)
+step	users
+app_open	3
+product_view	2
+add_to_cart	1
+checkout	1
+
+Funnel SQL = user timeline → ordered comparisons → counts
+Non Window Function Way 
+1.Pivot events into columns (one row per user)
+WITH user_steps AS (
+    SELECT
+        user_id,
+        MIN(CASE WHEN event_name = 'app_open' THEN event_time END) AS app_open_time,
+        MIN(CASE WHEN event_name = 'product_view' THEN event_time END) AS product_view_time,
+        MIN(CASE WHEN event_name = 'add_to_cart' THEN event_time END) AS add_to_cart_time,
+        MIN(CASE WHEN event_name = 'checkout' THEN event_time END) AS checkout_time
+    FROM events
+    GROUP BY user_id
+)
+
+SELECT 'app_open' AS step, COUNT(*) AS users
+FROM user_steps
+WHERE app_open_time IS NOT NULL
+
+UNION ALL
+
+SELECT 'product_view', COUNT(*)
+FROM user_steps
+WHERE product_view_time IS NOT NULL
+  AND product_view_time > app_open_time
+
+UNION ALL
+
+SELECT 'add_to_cart', COUNT(*)
+FROM user_steps
+WHERE add_to_cart_time IS NOT NULL
+  AND add_to_cart_time > product_view_time
+
+UNION ALL
+
+SELECT 'checkout', COUNT(*)
+FROM user_steps
+WHERE checkout_time IS NOT NULL
+  AND checkout_time > add_to_cart_time;
+
+
+Using Window function:
+
