@@ -1,0 +1,23 @@
+You’re given a table of teams and asked to schedule fixtures between every pair of teams (round-robin), without duplicates or self-matches.
+TEAM
+----
+CSK
+MI
+RCB
+KKR
+
+hence, the contraints are:
+Every team plays every other team once
+No team plays itself
+No duplicate fixtures
+(CSK vs MI is same as MI vs CSK → show only one)
+
+
+SELECT
+    t1.team AS team_1,
+    t2.team AS team_2
+FROM teams t1 --a self join creates cartesian product
+JOIN teams t2
+    ON t1.team < t2.team --the letters c,m,r and k are getting compared
+ORDER BY team_1, team_2;
+
