@@ -21,3 +21,23 @@ JOIN teams t2
     ON t1.team < t2.team --the letters c,m,r and k are getting compared
 ORDER BY team_1, team_2;
 
+home	away	
+csk	csk	csk>csk
+csk	rcb	c>r
+csk	mi	c>m
+csk	kkr	c>k
+rcb	csk	r>c
+rcb	rcb	r>r
+rcb	mi	r>m
+rcb	kkr	r>k
+mi	csk	m>c
+mi	rcb	m>r
+mi	mi	m>m
+mi	kkr	m>k
+kkr	csk	k>c
+kkr	rcb	k>r
+kkr	mi	k>m
+kkr	kkr	k>k
+
+for even home matches, then the only condiction is team 1 <>team 2
+
